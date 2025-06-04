@@ -3,242 +3,559 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Builder's Canvas - Octagonal Project</title>
-    <link rel="stylesheet" href="style.css"> <!-- Link to your main stylesheet -->
+    <title>Interactive Grid Builder</title>
     <style>
-        /* Page-specific styles for octagonal.html */
-        .octagonal-page main {
-            padding: 20px;
-            max-width: 1000px; /* Adjust as needed for wider content */
-            margin: 0 auto;
-        }
-
-        .map-overview-section, .component-details-section, .alliance-spotlight-section, .central-hub-section, .cta-section {
-            margin-bottom: 40px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
-        .section-title { /* Reusable class for section titles */
-            color: #0056b3;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-
-        .main-map-image-container {
-            text-align: center; /* Center the map image */
-            margin-bottom: 20px;
-            background-color: #e9ecef; /* Light background for the map */
-            padding: 15px;
-            border-radius: 5px;
-        }
-
-        .main-map-image-container img {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ccc;
-        }
-
-        .component-gallery {
+        body {
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: space-around; /* Distribute items nicely */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh; /* Full viewport height */
+            overflow: hidden; /* Prevent body scrollbars if content is larger */
         }
 
-        .component-item {
-            flex-basis: calc(33.333% - 20px); /* Adjust for number of items per row */
-            min-width: 250px; /* Minimum width for items */
-            background-color: #f8f9fa;
+        #sidebar {
+            width: 220px; /* Slightly wider for item names */
+            background-color: #f0f0f0;
             padding: 15px;
-            border-radius: 5px;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-right: 1px solid #ccc;
+            overflow-y: auto; /* Allow scrolling if many items */
+            display: flex;
+            flex-direction: column;
         }
 
-        .component-item img {
-            max-width: 100%;
-            height: auto;
-            max-height: 200px; /* Limit image height */
-            object-fit: contain; /* Ensure image fits well */
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-
-        .component-item h4 {
+        #sidebar h3 {
             margin-top: 0;
-            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            font-size: 1.1em;
         }
 
-        .alliance-description {
+        .buildable-item {
+            padding: 8px;
+            margin-bottom: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: grab; /* Indicate draggable */
+            text-align: center;
+            user-select: none; /* Prevent text selection during drag */
+            font-size: 0.9em;
+        }
+        .buildable-item:active {
+            cursor: grabbing;
+        }
+        .buildable-item img {
+            max-width: 50px;
+            max-height: 50px;
+            display: block;
+            margin: 0 auto 5px;
+            border: 1px solid #eee;
+        }
+
+
+        #main-area {
+            flex-grow: 1; /* Takes remaining space */
             display: flex;
-            gap: 20px;
-            align-items: flex-start; /* Align items to the top */
+            flex-direction: column; /* Toolbar on top, grid below */
+            overflow: hidden; /* Important for the grid wrapper */
         }
 
-        .alliance-description img {
-            max-width: 200px; /* For smaller, focused images of alliances */
-            height: auto;
-            border-radius: 5px;
-            flex-shrink: 0; /* Prevent image from shrinking too much */
+        #toolbar {
+            padding: 10px;
+            background-color: #e9ecef;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            flex-wrap: wrap; /* Allow toolbar items to wrap on small screens */
+            gap: 10px;
+            align-items: center;
+            font-size: 0.9em;
         }
-        .alliance-description .text-content {
+        #toolbar label, #toolbar span {
+            margin-right: 5px;
+        }
+        #toolbar button {
+            padding: 5px 10px;
+        }
+
+        #grid-wrapper {
             flex-grow: 1;
+            overflow: auto; /* IMPORTANT: This allows scrolling of the large grid */
+            background-color: #e0e0e0; /* Background for the scrollable area */
+            padding: 10px;
         }
 
+        #grid-container {
+            display: grid; /* We will define columns and rows with JS */
+            background-image:
+                linear-gradient(to right, #ccc 1px, transparent 1px),
+                linear-gradient(to bottom, #ccc 1px, transparent 1px);
+            background-size: 20px 20px; /* This will be our TILE_SIZE */
+            position: relative; /* For absolute positioning of placed items */
+            border: 1px solid #aaa;
+            /* Width and height will be set by JS */
+        }
 
-        .cta-button {
-            display: inline-block;
-            background-color: #28a745;
+        .placed-item-on-grid {
+            position: absolute; /* Positioned relative to grid-container */
+            /* background-color: rgba(0, 123, 255, 0.1); /* Light background, image will cover */
+            border: 1px solid #0056b3; /* Border around the image */
+            box-sizing: border-box;
+            display: flex; /* If using text overlay */
+            align-items: center; /* If using text overlay */
+            justify-content: center; /* If using text overlay */
+            overflow: hidden; /* Ensure image doesn't spill out */
+        }
+        .placed-item-on-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 'cover', 'contain', 'fill', 'scale-down' */
+            pointer-events: none; /* So the image itself doesn't interfere with clicks on the parent div */
+        }
+
+        .placed-item-text-overlay { /* Optional styling for text on top of the image */
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
             color: white;
-            padding: 12px 25px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .cta-button:hover {
-            background-color: #218838;
+            font-size: clamp(0.6em, 2vw, 0.8em); /* Responsive font size */
+            padding: 2px 4px;
+            box-sizing: border-box;
+            text-align: center;
+            pointer-events: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .component-item {
-                flex-basis: calc(50% - 15px);
-            }
-            .alliance-description {
-                flex-direction: column;
-                align-items: center; /* Center items when stacked */
-            }
-            .alliance-description img {
-                margin-bottom: 15px;
-            }
+
+        #alliance-section {
+            margin-top: auto; /* Pushes to the bottom of sidebar */
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
         }
-        @media (max-width: 480px) {
-            .component-item {
-                flex-basis: 100%;
-            }
+        #alliance-section input[type="text"] {
+            width: calc(100% - 75px); /* Adjust based on button width */
+            margin-right: 5px;
+            padding: 6px;
+            box-sizing: border-box;
+        }
+        #alliance-section button {
+             padding: 6px 10px;
+        }
+        #alliance-list {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 10px;
+            max-height: 150px; /* Example max height */
+            overflow-y: auto;
+            font-size: 0.9em;
+        }
+        #alliance-list li {
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #alliance-list li:hover {
+            background-color: #e9e9e9;
+        }
+        #alliance-list li.selected {
+            font-weight: bold;
+            background-color: #d0e0ff;
+        }
+        .delete-alliance-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 1.1em;
+            padding: 0 5px;
+        }
+        .delete-alliance-btn:hover {
+            color: #c82333;
         }
 
     </style>
 </head>
-<body class="octagonal-page">
+<body>
 
-    <header>
-        <h1>The Builder's Canvas: Octagonal Project</h1>
-        <nav>
-            <a href="index.html" style="color:white; margin: 0 10px;">Home</a>
-            <!-- Add other primary navigation if needed -->
-        </nav>
-    </header>
-
-    <main>
-        <section class="map-overview-section">
-            <h2 class="section-title">Strategic Overview</h2>
-            <div class="main-map-image-container">
-                <!-- === YOUR MAIN PIXEL ART IMAGE GOES HERE === -->
-                <img src="udklip.jpg" alt="Strategic map of builder alliances and structures">
-                <!-- Example: <img src="images/builder_map_overview.png" alt="Strategic map..."> -->
+    <div id="sidebar">
+        <h3>Buildable Items</h3>
+        <div id="buildable-items-list">
+            <div class="buildable-item" draggable="true"
+                 data-item-id="base" data-width="3" data-height="3"
+                 data-image-src="images/base.jpg" data-name="Base">
+                <img src="images/base.jpg" alt="Base">
+                Base (3x3)
             </div>
-            <p>
-                This canvas represents the dynamic world of our builder project. Each colored cluster signifies an active alliance,
-                developing its territory and resources. The central brown structure is the main 'City', a hub of activity.
-                Observe how different alliances establish their presence with key structures like Bases and Furnaces.
-            </p>
-        </section>
-
-        <section class="alliance-spotlight-section">
-            <h2 class="section-title">The 'Orange' Hive Initiative</h2>
-            <div class="alliance-description">
-                <!-- Optional: A cropped image focusing on the orange alliance, or a conceptual drawing -->
-                <!-- <img src="base.jpg" alt="Detail of the Orange Hive"> -->
-                <div class="text-content">
-                    <p>
-                        The 'Orange' alliance demonstrates our primary expansion strategy. Currently in a foundational phase,
-                        this "hive" is designed for progressive outward growth, securing new territories and resources.
-                        Its development showcases the core principles of establishing a resilient and productive presence.
-                    </p>
-                    <p><strong>Key characteristics:</strong> Modular expansion, resource efficiency, strategic placement.</p>
-                </div>
+            <div class="buildable-item" draggable="true"
+                 data-item-id="city2" data-width="11" data-height="11"
+                 data-image-src="images/city2.jpg" data-name="City">
+                <img src="images/city2.jpg" alt="City">
+                City (11x11)
             </div>
-        </section>
-
-        <section class="central-hub-section">
-            <h2 class="section-title">The Central 'City' (Brown Structure)</h2>
-            <div class="alliance-description"> <!-- Reusing this class for layout consistency -->
-                <!-- === YOUR CITY REFERENCE IMAGE GOES HERE === -->
-                <img src="city level 2.jpg" alt="The Central City Hub">
-                <!-- Example: <img src="images/city_hub.png" alt="The Central City Hub"> -->
-                <div class="text-content">
-                    <p>
-                        Located at the heart of the map, the 'City' (represented by the brown structure) serves as a central
-                        nexus for all alliances. It might offer unique resources, trading opportunities, or strategic advantages.
-                        Its development and control are pivotal to the overall landscape.
-                    </p>
-                    <p><strong>Features:</strong> [e.g., Advanced Crafting, Marketplace, Alliance HQ options - fill these in]</p>
-                </div>
+            <div class="buildable-item" draggable="true"
+                 data-item-id="lake" data-width="9" data-height="10"
+                 data-image-src="images/lake.jpg" data-name="Lake">
+                <img src="images/lake.jpg" alt="Lake">
+                Lake (9x10)
             </div>
-        </section>
-
-        <section class="component-details-section">
-            <h2 class="section-title">Key Structures & Components</h2>
-            <p>Alliances utilize several core structures to build and sustain their territories:</p>
-            <div class="component-gallery">
-                <div class="component-item">
-                    <!-- === YOUR FURNACE REFERENCE IMAGE GOES HERE (if you have one, or use a stylized icon) === -->
-                    <img src="furnace.jpg" alt="A 5x5 tile Furnace structure">
-                    <!-- Example: <img src="images/furnace_structure.png" alt="A 5x5 tile Furnace structure"> -->
-                    <!-- Or if no image: <img src="https://via.placeholder.com/200x150.png?text=Furnace+(5x5)" alt="Furnace icon"> -->
-                    <h4>Furnace (5x5 Red Tiles)</h4>
-                    <p>The powerhouse of an alliance. Furnaces are crucial for processing resources and fueling advanced construction.</p>
-                </div>
-
-                <div class="component-item">
-                    <!-- === YOUR BASE REFERENCE IMAGE GOES HERE (if you have one, or use a stylized icon) === -->
-                    <img src="path/to/your/base-image.png" alt="A 3x3 tile Base structure">
-                    <!-- Example: <img src="images/base_structure.png" alt="A 3x3 tile Base structure"> -->
-                    <!-- Or if no image: <img src="https://via.placeholder.com/200x150.png?text=Base+(3x3)" alt="Base icon"> -->
-                    <h4>Base (3x3 Tiles - often Grey/Dark)</h4>
-                    <p>The command and control center for an alliance's operations within a sector. Essential for expansion and defense.</p>
-                </div>
-
-                <div class="component-item">
-                    <!-- You can add another component if needed -->
-                    <img src="https://via.placeholder.com/200x150.png?text=Other+Alliances" alt="Icon representing other alliances">
-                    <h4>Other Alliances</h4>
-                    <p>Various other alliances (purple, blue, yellow, etc.) employ similar strategies, establishing their own networks of Bases and Furnaces.</p>
-                </div>
+            <div class="buildable-item" draggable="true"
+                 data-item-id="lake_rotated" data-width="10" data-height="9"
+                 data-image-src="images/lake.jpg" data-name="Lake (Rotated)">
+                <img src="images/lake.jpg" alt="Lake Rotated">
+                Lake (10x9)
             </div>
-        </section>
+            <div class="buildable-item" draggable="true"
+                 data-item-id="mountain" data-width="9" data-height="10"
+                 data-image-src="images/mountain.jpg" data-name="Mountain">
+                <img src="images/mountain.jpg" alt="Mountain">
+                Mountain (9x10)
+            </div>
+            <div class="buildable-item" draggable="true"
+                 data-item-id="mountain_rotated" data-width="10" data-height="9"
+                 data-image-src="images/mountain.jpg" data-name="Mountain (Rotated)">
+                <img src="images/mountain.jpg" alt="Mountain Rotated">
+                Mountain (10x9)
+            </div>
+            <div class="buildable-item" draggable="true"
+                 data-item-id="mountain_lake" data-width="16" data-height="17"
+                 data-image-src="images/mountain_lake.jpg" data-name="Mountain Lake">
+                <img src="images/mountain_lake.jpg" alt="Mountain Lake">
+                Mountain Lake (16x17)
+            </div>
+            <div class="buildable-item" draggable="true"
+                 data-item-id="furnace" data-width="5" data-height="5"
+                 data-image-src="images/furnace.jpg" data-name="Furnace">
+                <img src="images/furnace.jpg" alt="Furnace">
+                Furnace (5x5)
+            </div>
+            <div class="buildable-item" draggable="true"
+                 data-item-id="mg" data-width="3" data-height="3"
+                 data-image-src="images/mg.jpg" data-name="MG Unit">
+                <img src="images/mg.jpg" alt="MG Unit">
+                MG Unit (3x3)
+            </div>
+        </div>
 
-        <section class="cta-section">
-            <h2 class="section-title">Learn More or Get Involved</h2>
-            <p>
-                Interested in the strategy behind these builds or want to contribute to the project?
-                Reach out to us for more details or to join an alliance!
-            </p>
-            <p>
-                Email: <a href="mailto:contact@yourproject.com">contact@yourproject.com</a><br>
-                Discord/Forum: <a href="#">[Link to Your Community]</a>
-            </p>
-            <p style="margin-top: 20px;">
-                <a href="#discuss" class="cta-button">Discuss Strategies</a>
-            </p>
-        </section>
+        <div id="alliance-section">
+            <h3>Alliances</h3>
+            <div>
+                <input type="text" id="new-alliance-name" placeholder="Alliance Name">
+                <button id="add-alliance-btn">Add</button>
+            </div>
+            <ul id="alliance-list">
+                <!-- li elements for alliances will be added here -->
+            </ul>
+        </div>
+    </div>
 
-    </main>
-
-    <footer>
-        <p>© <span id="currentYear"></span> My Builder Sites - Octagonal Project. All rights reserved.</p>
-        <p><a href="index.html" style="color:#ccc;">Back to Main Selector</a></p>
-    </footer>
+    <div id="main-area">
+        <div id="toolbar">
+            <label for="tile-size-slider">Zoom:</label>
+            <input type="range" id="tile-size-slider" min="5" max="40" value="20" title="Adjust Grid Zoom">
+            <span id="tile-size-value">20px</span>
+            <span>|</span>
+            <span>Grid: <span id="grid-dimensions-display">WxH</span> Tiles</span>
+            <span>|</span>
+            <button id="clear-all-btn" title="Remove all items from grid">Clear All</button>
+            <span>|</span>
+            <span>Selected Alliance: <strong id="current-alliance-display">None</strong></span>
+        </div>
+        <div id="grid-wrapper">
+            <div id="grid-container">
+                <!-- The grid where items are dropped -->
+            </div>
+        </div>
+    </div>
 
     <script>
-        document.getElementById('currentYear').textContent = new Date().getFullYear();
-    </script>
+        // --- CONFIGURATION ---
+        const TILES_PER_AREA_X = 75;
+        const TILES_PER_AREA_Y = 75;
+        const NUM_AREAS_X = 1; // Start with 1 for a 75x75 grid. Increase for larger map.
+        const NUM_AREAS_Y = 1; // Start with 1 for a 75x75 grid.
 
+        const TOTAL_GRID_COLS = TILES_PER_AREA_X * NUM_AREAS_X;
+        const TOTAL_GRID_ROWS = TILES_PER_AREA_Y * NUM_AREAS_Y;
+        let currentTileSize = 20; // Initial pixel size of one tile
+
+        // --- DOM ELEMENTS ---
+        const gridContainer = document.getElementById('grid-container');
+        const buildableItemsList = document.querySelectorAll('#buildable-items-list .buildable-item');
+        const tileSizeSlider = document.getElementById('tile-size-slider');
+        const tileSizeValueDisplay = document.getElementById('tile-size-value');
+        const gridDimensionsDisplay = document.getElementById('grid-dimensions-display');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+
+        const newAllianceNameInput = document.getElementById('new-alliance-name');
+        const addAllianceBtn = document.getElementById('add-alliance-btn');
+        const allianceListUl = document.getElementById('alliance-list');
+        const currentAllianceDisplay = document.getElementById('current-alliance-display');
+
+        // --- STATE ---
+        let draggedItemData = null;
+        let placedItems = []; // {id, x, y, width, height, itemId, name, imageSrc, allianceName, element}
+        let alliances = ["Neutral"]; // Start with a default alliance
+        let selectedAllianceName = "Neutral";
+        let nextPlacedItemId = 0;
+
+        // --- GRID FUNCTIONS ---
+        function updateGridAppearance() {
+            gridContainer.style.width = `${TOTAL_GRID_COLS * currentTileSize}px`;
+            gridContainer.style.height = `${TOTAL_GRID_ROWS * currentTileSize}px`;
+            gridContainer.style.backgroundSize = `${currentTileSize}px ${currentTileSize}px`;
+            gridDimensionsDisplay.textContent = `${TOTAL_GRID_COLS}x${TOTAL_GRID_ROWS}`;
+
+            placedItems.forEach(item => {
+                if (item.element) {
+                    item.element.style.left = `${item.x * currentTileSize}px`;
+                    item.element.style.top = `${item.y * currentTileSize}px`;
+                    item.element.style.width = `${item.width * currentTileSize}px`;
+                    item.element.style.height = `${item.height * currentTileSize}px`;
+                }
+            });
+        }
+
+        // --- ITEM PLACEMENT FUNCTIONS ---
+        function addPlacedItemToGrid(itemData, gridX, gridY) {
+            const uniqueId = nextPlacedItemId++;
+            const newItem = {
+                id: uniqueId,
+                x: gridX,
+                y: gridY,
+                width: itemData.width,
+                height: itemData.height,
+                itemId: itemData.itemId,
+                name: itemData.name,
+                imageSrc: itemData.imageSrc,
+                allianceName: selectedAllianceName,
+            };
+
+            const itemElement = document.createElement('div');
+            itemElement.classList.add('placed-item-on-grid');
+            itemElement.style.left = `${newItem.x * currentTileSize}px`;
+            itemElement.style.top = `${newItem.y * currentTileSize}px`;
+            itemElement.style.width = `${newItem.width * currentTileSize}px`;
+            itemElement.style.height = `${newItem.height * currentTileSize}px`;
+
+            const img = document.createElement('img');
+            img.src = newItem.imageSrc;
+            img.alt = newItem.name;
+            itemElement.appendChild(img);
+
+            const textOverlay = document.createElement('div');
+            textOverlay.classList.add('placed-item-text-overlay');
+            let overlayTextContent = `${newItem.name}`;
+            if(newItem.allianceName && newItem.allianceName !== "Neutral") { // Don't show (Neutral)
+                overlayTextContent += ` (${newItem.allianceName})`;
+            }
+            textOverlay.textContent = overlayTextContent;
+            itemElement.appendChild(textOverlay);
+
+            itemElement.title = `Click to remove: ${newItem.name}${newItem.allianceName && newItem.allianceName !== "Neutral" ? ' (' + newItem.allianceName + ')' : ''}`;
+            itemElement.dataset.placedId = uniqueId;
+
+            itemElement.addEventListener('click', (event) => {
+                event.stopPropagation();
+                removePlacedItem(uniqueId);
+            });
+
+            newItem.element = itemElement;
+            placedItems.push(newItem);
+            gridContainer.appendChild(itemElement);
+        }
+
+        function removePlacedItem(placedId) {
+            const itemIndex = placedItems.findIndex(p => p.id === placedId);
+            if (itemIndex > -1) {
+                const itemToRemove = placedItems[itemIndex];
+                if (itemToRemove.element) {
+                    gridContainer.removeChild(itemToRemove.element);
+                }
+                placedItems.splice(itemIndex, 1);
+            }
+        }
+
+        // --- DRAG AND DROP HANDLERS ---
+        buildableItemsList.forEach(item => {
+            item.addEventListener('dragstart', (event) => {
+                const target = event.currentTarget; // Use currentTarget for consistently getting the div
+                draggedItemData = {
+                    itemId: target.dataset.itemId,
+                    width: parseInt(target.dataset.width),
+                    height: parseInt(target.dataset.height),
+                    name: target.dataset.name,
+                    imageSrc: target.dataset.imageSrc,
+                    offsetX: event.offsetX,
+                    offsetY: event.offsetY
+                };
+                target.style.opacity = '0.5';
+            });
+            item.addEventListener('dragend', (event) => {
+                event.currentTarget.style.opacity = '1';
+                draggedItemData = null;
+            });
+        });
+
+        gridContainer.addEventListener('dragover', (event) => {
+            event.preventDefault();
+        });
+
+        gridContainer.addEventListener('drop', (event) => {
+            event.preventDefault();
+            if (!draggedItemData) return;
+
+            const gridRect = gridContainer.getBoundingClientRect();
+            const dropX = event.clientX - gridRect.left + gridContainer.parentElement.scrollLeft;
+            const dropY = event.clientY - gridRect.top + gridContainer.parentElement.scrollTop;
+
+            const gridCellX = Math.floor(dropX / currentTileSize);
+            const gridCellY = Math.floor(dropY / currentTileSize);
+
+            if (gridCellX < 0 || gridCellY < 0 ||
+                gridCellX + draggedItemData.width > TOTAL_GRID_COLS ||
+                gridCellY + draggedItemData.height > TOTAL_GRID_ROWS) {
+                alert('Item cannot be placed out of bounds.');
+                return;
+            }
+
+            let collision = false;
+            for (const existingItem of placedItems) {
+                if (
+                    gridCellX < existingItem.x + existingItem.width &&
+                    gridCellX + draggedItemData.width > existingItem.x &&
+                    gridCellY < existingItem.y + existingItem.height &&
+                    gridCellY + draggedItemData.height > existingItem.y
+                ) {
+                    collision = true;
+                    break;
+                }
+            }
+            if (collision) {
+                alert('Cannot place item here, it overlaps with another item.');
+                return;
+            }
+
+            addPlacedItemToGrid(draggedItemData, gridCellX, gridCellY);
+            draggedItemData = null;
+        });
+
+        // --- ALLIANCE FUNCTIONS ---
+        function renderAllianceList() {
+            allianceListUl.innerHTML = '';
+            alliances.forEach(name => {
+                const li = document.createElement('li');
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = name;
+                li.appendChild(nameSpan);
+
+                if (name === selectedAllianceName) {
+                    li.classList.add('selected');
+                }
+
+                li.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('delete-alliance-btn')) return; // Don't select if delete btn is clicked
+
+                    if (selectedAllianceName === name) {
+                        // selectedAllianceName = null; // Keep an alliance selected, default to "Neutral"
+                        // currentAllianceDisplay.textContent = 'None';
+                    } else {
+                        selectedAllianceName = name;
+                        currentAllianceDisplay.textContent = selectedAllianceName;
+                    }
+                    renderAllianceList();
+                });
+
+                if (name !== "Neutral") { // Cannot delete "Neutral"
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '×'; // Multiplication sign for 'x'
+                    deleteBtn.classList.add('delete-alliance-btn');
+                    deleteBtn.title = `Delete alliance: ${name}`;
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent li click event
+                        if (confirm(`Are you sure you want to delete the alliance "${name}"? Items belonging to it will become "Neutral".`)) {
+                            deleteAlliance(name);
+                        }
+                    });
+                    li.appendChild(deleteBtn);
+                }
+                allianceListUl.appendChild(li);
+            });
+        }
+
+        function deleteAlliance(nameToDelete) {
+            alliances = alliances.filter(name => name !== nameToDelete);
+            // Reassign items from deleted alliance to "Neutral"
+            placedItems.forEach(item => {
+                if (item.allianceName === nameToDelete) {
+                    item.allianceName = "Neutral";
+                    // Update text overlay on the item's element
+                    if (item.element) {
+                        const textOverlay = item.element.querySelector('.placed-item-text-overlay');
+                        if (textOverlay) {
+                            textOverlay.textContent = `${item.name}`; // Neutral is not displayed
+                        }
+                        item.element.title = `Click to remove: ${item.name}`;
+                    }
+                }
+            });
+            if (selectedAllianceName === nameToDelete) {
+                selectedAllianceName = "Neutral";
+                currentAllianceDisplay.textContent = selectedAllianceName;
+            }
+            renderAllianceList();
+        }
+
+
+        addAllianceBtn.addEventListener('click', () => {
+            const name = newAllianceNameInput.value.trim();
+            if (name && !alliances.includes(name)) {
+                alliances.push(name);
+                newAllianceNameInput.value = '';
+                renderAllianceList();
+            } else if (!name) {
+                alert("Please enter an alliance name.");
+            } else {
+                alert("Alliance name already exists.");
+            }
+        });
+         newAllianceNameInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                addAllianceBtn.click();
+            }
+        });
+
+
+        // --- TOOLBAR EVENT LISTENERS ---
+        tileSizeSlider.addEventListener('input', (event) => {
+            currentTileSize = parseInt(event.target.value);
+            tileSizeValueDisplay.textContent = `${currentTileSize}px`;
+            updateGridAppearance();
+        });
+
+        clearAllBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all placed items?')) {
+                placedItems.forEach(item => {
+                    if (item.element) gridContainer.removeChild(item.element);
+                });
+                placedItems = [];
+                nextPlacedItemId = 0;
+            }
+        });
+
+        // --- INITIALIZATION ---
+        function init() {
+            updateGridAppearance();
+            currentAllianceDisplay.textContent = selectedAllianceName;
+            renderAllianceList();
+        }
+
+        init();
+    </script>
 </body>
 </html>
