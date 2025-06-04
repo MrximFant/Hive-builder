@@ -321,7 +321,7 @@
             });
         }
 
-        // --- ITEM PLACEMENT FUNCTIONS ---
+               // --- ITEM PLACEMENT FUNCTIONS ---
         function addPlacedItemToGrid(itemData, gridX, gridY) {
             const uniqueId = nextPlacedItemId++;
             const newItem = {
@@ -332,35 +332,44 @@
                 height: itemData.height,
                 itemId: itemData.itemId,
                 name: itemData.name,
-                imageSrc: itemData.imageSrc,
+                imageSrc: itemData.imageSrc, // Get the image source
                 allianceName: selectedAllianceName,
             };
 
             const itemElement = document.createElement('div');
             itemElement.classList.add('placed-item-on-grid');
+            // itemElement.classList.add(newItem.itemId); // Keep for potential background color fallback or specific borders
+
             itemElement.style.left = `${newItem.x * currentTileSize}px`;
             itemElement.style.top = `${newItem.y * currentTileSize}px`;
             itemElement.style.width = `${newItem.width * currentTileSize}px`;
             itemElement.style.height = `${newItem.height * currentTileSize}px`;
 
+            // --- NEW: Add image to the placed item ---
             const img = document.createElement('img');
             img.src = newItem.imageSrc;
             img.alt = newItem.name;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover'; // Or 'contain', 'fill', 'scale-down'
             itemElement.appendChild(img);
+            // --- End of new image addition ---
 
+            // Add text overlay for name/alliance if desired (optional, image might be enough)
             const textOverlay = document.createElement('div');
-            textOverlay.classList.add('placed-item-text-overlay');
+            textOverlay.classList.add('placed-item-text-overlay'); // Style this class in CSS
             let overlayTextContent = `${newItem.name}`;
-            if(newItem.allianceName && newItem.allianceName !== "Neutral") { // Don't show (Neutral)
+            if(newItem.allianceName) {
                 overlayTextContent += ` (${newItem.allianceName})`;
             }
             textOverlay.textContent = overlayTextContent;
-            itemElement.appendChild(textOverlay);
+            // itemElement.appendChild(textOverlay); // Uncomment to add text overlay
 
-            itemElement.title = `Click to remove: ${newItem.name}${newItem.allianceName && newItem.allianceName !== "Neutral" ? ' (' + newItem.allianceName + ')' : ''}`;
+            itemElement.title = `Click to remove ${newItem.name}`;
             itemElement.dataset.placedId = uniqueId;
 
             itemElement.addEventListener('click', (event) => {
+                // Prevent event from bubbling if the text overlay is a child
                 event.stopPropagation();
                 removePlacedItem(uniqueId);
             });
@@ -370,36 +379,21 @@
             gridContainer.appendChild(itemElement);
         }
 
-        function removePlacedItem(placedId) {
-            const itemIndex = placedItems.findIndex(p => p.id === placedId);
-            if (itemIndex > -1) {
-                const itemToRemove = placedItems[itemIndex];
-                if (itemToRemove.element) {
-                    gridContainer.removeChild(itemToRemove.element);
-                }
-                placedItems.splice(itemIndex, 1);
-            }
-        }
-
-        // --- DRAG AND DROP HANDLERS ---
+               // --- DRAG AND DROP HANDLERS ---
         buildableItemsList.forEach(item => {
             item.addEventListener('dragstart', (event) => {
-                const target = event.currentTarget; // Use currentTarget for consistently getting the div
                 draggedItemData = {
-                    itemId: target.dataset.itemId,
-                    width: parseInt(target.dataset.width),
-                    height: parseInt(target.dataset.height),
-                    name: target.dataset.name,
-                    imageSrc: target.dataset.imageSrc,
+                    itemId: event.target.dataset.itemId,
+                    width: parseInt(event.target.dataset.width),
+                    height: parseInt(event.target.dataset.height),
+                    name: event.target.dataset.name,
+                    imageSrc: event.target.dataset.imageSrc, // <<< ADD THIS LINE
                     offsetX: event.offsetX,
                     offsetY: event.offsetY
                 };
-                target.style.opacity = '0.5';
+                event.target.style.opacity = '0.5';
             });
-            item.addEventListener('dragend', (event) => {
-                event.currentTarget.style.opacity = '1';
-                draggedItemData = null;
-            });
+            // ... rest of dragend listener
         });
 
         gridContainer.addEventListener('dragover', (event) => {
