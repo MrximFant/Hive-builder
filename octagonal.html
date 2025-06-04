@@ -3,12 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Multi-Map Builder - Large Maps</title>
+    <title>Interactive Multi-Map Builder - 9 Maps Side-by-Side</title>
     <style>
-        /* CSS remains largely the same as your last full version */
-        /* Key things that might need adjustment due to larger map: */
-        /* - #grid-wrapper and #maps-super-container will handle very large content */
-        /* - Zoom slider range might need tuning if tiles become too small/large */
         body {
             display: flex;
             font-family: Arial, sans-serif;
@@ -18,8 +14,8 @@
         }
 
         #sidebar {
-            width: 220px; /* Can be adjusted */
-            min-width: 200px; /* Prevent excessive shrinking */
+            width: 220px;
+            min-width: 200px;
             background-color: #f0f0f0;
             padding: 15px;
             border-right: 1px solid #ccc;
@@ -27,7 +23,6 @@
             display: flex;
             flex-direction: column;
         }
-         /* ... (rest of your existing CSS from the previous full version) ... */
         #sidebar h3 {
             margin-top: 0;
             border-bottom: 1px solid #ddd;
@@ -83,15 +78,17 @@
 
         #grid-wrapper { 
             flex-grow: 1;
-            overflow: auto; 
+            overflow: auto; /* Will provide horizontal scroll for many maps */
             background-color: #d0d0d0; 
             padding: 10px; 
         }
 
         #maps-super-container { 
             display: flex;
-            flex-wrap: wrap;
+            /* flex-wrap: wrap; /* Less critical if NUM_MAPS_DOWN is 1, but safe to keep */
+            flex-wrap: nowrap; /* Ensures a single row if space allows, scrolling handles overflow */
             gap: 15px; 
+            /* min-width will be set by JS to enable proper horizontal scrolling */
         }
 
         .individual-map-container {
@@ -102,6 +99,7 @@
             border: 2px solid black; 
             box-sizing: border-box;
             overflow: hidden; 
+            flex-shrink: 0; /* Prevent maps from shrinking if flex-wrap is nowrap */
         }
 
         .placed-item-on-grid {
@@ -119,6 +117,13 @@
             object-fit: cover;
             pointer-events: none;
         }
+        .placed-item-on-grid .error-text-placeholder { /* For image load errors */
+            color: white;
+            font-size: 0.8em;
+            padding: 5px;
+            text-align: center;
+        }
+
 
         .placed-item-text-overlay {
             position: absolute;
@@ -164,16 +169,19 @@
             border-bottom: 1px solid #eee;
             cursor: pointer;
             display: flex;
-            justify-content: space-between;
+            /* justify-content: space-between; */ /* Let swatch and name be together */
             align-items: center;
         }
-         #alliance-list li .color-swatch { /* Style for the color swatch span */
+         #alliance-list li .color-swatch {
             display: inline-block;
             width: 12px;
             height: 12px;
             margin-right: 8px;
             border: 1px solid #666;
-            flex-shrink: 0; /* Prevent swatch from shrinking */
+            flex-shrink: 0;
+        }
+        #alliance-list li .alliance-name-span { /* To allow delete button to be on the right */
+            flex-grow: 1;
         }
         #alliance-list li:hover {
             background-color: #e9e9e9;
@@ -188,7 +196,8 @@
             color: #dc3545;
             cursor: pointer;
             font-size: 1.1em;
-            padding: 0 5px;
+            padding: 0 0 0 5px; /* Padding on left */
+            margin-left: auto; /* Pushes delete button to the right */
         }
         .delete-alliance-btn:hover {
             color: #c82333;
@@ -201,8 +210,8 @@
     <div id="sidebar">
         <h3>Buildable Items</h3>
         <div id="buildable-items-list">
-            <!-- ... Your buildable items HTML as before ... -->
-             <div class="buildable-item" draggable="true"
+            <!-- Your .buildable-item divs here, e.g.: -->
+            <div class="buildable-item" draggable="true"
                  data-item-id="base" data-width="3" data-height="3"
                  data-image-src="images/base.jpg" data-name="Base">
                 <img src="images/base.jpg" alt="Base Preview">
@@ -271,7 +280,7 @@
     <div id="main-area">
         <div id="toolbar">
             <label for="tile-size-slider">Zoom:</label>
-            <input type="range" id="tile-size-slider" min="2" max="30" value="10" title="Adjust Grid Zoom"> <!-- Adjusted slider range -->
+            <input type="range" id="tile-size-slider" min="2" max="30" value="10" title="Adjust Grid Zoom">
             <span id="tile-size-value">10px</span>
             <span>|</span>
             <span>Grid: <span id="grid-dimensions-display">WxH</span> Tiles</span>
@@ -289,19 +298,19 @@
 
     <script>
         // --- CONFIGURATION ---
-        const TILES_PER_MAP_X = 75; // Bigger map
-        const TILES_PER_MAP_Y = 75; // Bigger map
-        const NUM_MAPS_ACROSS = 2;
-        const NUM_MAPS_DOWN = 3;
+        const TILES_PER_MAP_X = 75;
+        const TILES_PER_MAP_Y = 75;
+        const NUM_MAPS_ACROSS = 9; // Changed for 9 maps side-by-side
+        const NUM_MAPS_DOWN = 1;   // Changed for a single row
         const TOTAL_MAPS = NUM_MAPS_ACROSS * NUM_MAPS_DOWN;
 
         const SINGLE_MAP_COLS = TILES_PER_MAP_X;
         const SINGLE_MAP_ROWS = TILES_PER_MAP_Y;
-        let currentTileSize = 10; // Adjusted initial tile size for larger map
+        let currentTileSize = 10;
 
         // --- DOM ELEMENTS ---
         const mapsSuperContainer = document.getElementById('maps-super-container');
-        const sidebarElement = document.getElementById('sidebar'); // For drag-back-to-remove later
+        const sidebarElement = document.getElementById('sidebar');
         const buildableItemsList = document.querySelectorAll('#buildable-items-list .buildable-item');
         const tileSizeSlider = document.getElementById('tile-size-slider');
         const tileSizeValueDisplay = document.getElementById('tile-size-value');
@@ -313,16 +322,16 @@
         const currentAllianceDisplay = document.getElementById('current-alliance-display');
 
         // --- STATE ---
-        let draggedItemData = null; // For new items from sidebar
-        let draggedPlacedItemData = null; // For moving existing items on grid
+        let draggedItemData = null;
+        let draggedPlacedItemData = null;
         let placedItems = [];
         let alliances = ["Neutral"];
         let selectedAllianceName = "Neutral";
         let nextPlacedItemId = 0;
         let mapElements = [];
-        let allianceHues = {}; // Stores hue for each alliance
+        let allianceHues = {};
         let nextHue = 0;
-        const HUE_INCREMENT = 45; // Or any other value for hue steps
+        const HUE_INCREMENT = 45;
 
         // --- MAP/GRID FUNCTIONS ---
         function createMapContainers() {
@@ -346,11 +355,15 @@
                 mapDiv.style.height = `${SINGLE_MAP_ROWS * currentTileSize}px`;
                 mapDiv.style.backgroundSize = `${currentTileSize}px ${currentTileSize}px`;
             });
-            const gapBetweenMaps = 15;
-            const mapBorderWidth = 2 * 2;
-            const totalMapsWidth = (SINGLE_MAP_COLS * currentTileSize + mapBorderWidth) * NUM_MAPS_ACROSS;
-            const totalGapsWidth = (NUM_MAPS_ACROSS - 1) * gapBetweenMaps;
+
+            const gapBetweenMaps = 15; // CSS value for 'gap'
+            const mapBorderWidthTotal = 2 * 2; // 2px border on left + 2px on right for each map
+            const singleMapFullWidth = (SINGLE_MAP_COLS * currentTileSize) + mapBorderWidthTotal;
+            
+            const totalMapsWidth = singleMapFullWidth * NUM_MAPS_ACROSS;
+            const totalGapsWidth = (NUM_MAPS_ACROSS > 0 ? (NUM_MAPS_ACROSS - 1) * gapBetweenMaps : 0);
             mapsSuperContainer.style.minWidth = `${totalMapsWidth + totalGapsWidth}px`;
+
             gridDimensionsDisplay.textContent = `${SINGLE_MAP_COLS}x${SINGLE_MAP_ROWS} (per map)`;
             placedItems.forEach(item => {
                 if (item.element) {
@@ -363,12 +376,12 @@
         }
 
         // --- ITEM PLACEMENT & MOVEMENT FUNCTIONS ---
-        function addPlacedItemToGrid(mapId, itemData, gridX, gridY, isMoving = false, existingItem = null) {
+        function addPlacedItemToGrid(mapId, itemData, gridX, gridY, isMoving = false, existingItemToUpdate = null) {
             let currentItem;
             let itemElement;
 
-            if (isMoving && existingItem) {
-                currentItem = existingItem;
+            if (isMoving && existingItemToUpdate) {
+                currentItem = existingItemToUpdate;
                 itemElement = currentItem.element;
                 // Update properties
                 currentItem.x = gridX;
@@ -376,7 +389,6 @@
                 const oldMapId = currentItem.mapId;
                 currentItem.mapId = mapId;
 
-                // Move DOM element
                 itemElement.style.left = `${gridX * currentTileSize}px`;
                 itemElement.style.top = `${gridY * currentTileSize}px`;
                 itemElement.style.opacity = '1';
@@ -399,15 +411,24 @@
                 itemElement.style.top = `${currentItem.y * currentTileSize}px`;
                 itemElement.style.width = `${currentItem.width * currentTileSize}px`;
                 itemElement.style.height = `${currentItem.height * currentTileSize}px`;
-                itemElement.draggable = true; // Make it draggable
+                itemElement.draggable = true;
                 itemElement.dataset.placedId = uniqueId;
-
 
                 const img = document.createElement('img');
                 img.src = currentItem.imageSrc;
                 img.alt = currentItem.name;
-                img.onerror = function() { /* ... error handling as before ... */ };
-                // Apply hue shift for bases
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    const parentDiv = this.parentNode;
+                    if (parentDiv) {
+                        parentDiv.style.backgroundColor = 'lightcoral';
+                        const errorText = document.createElement('span');
+                        errorText.className = 'error-text-placeholder';
+                        errorText.textContent = `Err: ${currentItem.name.substring(0,10)}`;
+                        parentDiv.appendChild(errorText);
+                    }
+                    console.warn(`Image not loaded: ${this.src} for item ${currentItem.name}`);
+                };
                 if (currentItem.itemId === 'base' && currentItem.allianceName !== "Neutral" && allianceHues[currentItem.allianceName] !== undefined) {
                     img.style.filter = `hue-rotate(${allianceHues[currentItem.allianceName]}deg)`;
                 } else {
@@ -425,20 +446,16 @@
                 itemElement.appendChild(textOverlay);
 
                 itemElement.title = `Drag to move. Drag to sidebar to remove.`;
-                // itemElement.addEventListener('click', ...); // Click to remove is now replaced by drag-to-sidebar
-
                 currentItem.element = itemElement;
                 placedItems.push(currentItem);
                 mapElements[mapId].appendChild(itemElement);
             }
             
-            // Add drag listeners to the itemElement (whether new or moved)
-            itemElement.removeEventListener('dragstart', handlePlacedItemDragStart); // Remove old if any
+            itemElement.removeEventListener('dragstart', handlePlacedItemDragStart);
             itemElement.addEventListener('dragstart', handlePlacedItemDragStart);
-            itemElement.removeEventListener('dragend', handlePlacedItemDragEnd); // Remove old if any
+            itemElement.removeEventListener('dragend', handlePlacedItemDragEnd);
             itemElement.addEventListener('dragend', handlePlacedItemDragEnd);
         }
-
 
         function removePlacedItem(placedId) {
             const itemIndex = placedItems.findIndex(p => p.id === placedId);
@@ -455,7 +472,14 @@
         buildableItemsList.forEach(item => {
             item.addEventListener('dragstart', (event) => {
                 const target = event.currentTarget;
-                draggedItemData = { /* ... as before ... */ };
+                draggedItemData = {
+                    itemId: target.dataset.itemId,
+                    width: parseInt(target.dataset.width),
+                    height: parseInt(target.dataset.height),
+                    name: target.dataset.name,
+                    imageSrc: target.dataset.imageSrc,
+                    offsetX: event.offsetX, offsetY: event.offsetY
+                };
                 target.style.opacity = '0.5';
             });
             item.addEventListener('dragend', (event) => {
@@ -475,25 +499,25 @@
                     itemId: item.itemId, name: item.name, imageSrc: item.imageSrc,
                     allianceName: item.allianceName, element: event.currentTarget
                 };
-                event.dataTransfer.setData('text/plain', item.id.toString());
+                try { // Firefox requires data to be set for drag to work properly
+                    event.dataTransfer.setData('text/plain', item.id.toString());
+                } catch (e) {
+                    console.warn("Could not set drag data (may be normal in some browsers):", e);
+                }
                 event.currentTarget.style.opacity = '0.5';
             }
         }
         function handlePlacedItemDragEnd(event) {
             event.currentTarget.style.opacity = '1';
-            // Clear draggedPlacedItemData if it wasn't successfully dropped on a map or sidebar
-            // This can be tricky; often cleared in the drop handlers instead.
              if(draggedPlacedItemData && draggedPlacedItemData.element === event.currentTarget) {
-                // If it's still the same item being dragged and wasn't processed by a drop
                 draggedPlacedItemData = null;
             }
         }
 
-
         function handleMapDragOver(event) {
-            // Allow drop if dragging a new item OR an existing placed item
             if (draggedItemData || draggedPlacedItemData) {
                 event.preventDefault();
+                event.dataTransfer.dropEffect = "move"; // Visual cue
             }
         }
 
@@ -501,24 +525,19 @@
             event.preventDefault();
             const targetMapElement = event.currentTarget;
             const targetMapId = parseInt(targetMapElement.dataset.mapId);
-
             const mapRect = targetMapElement.getBoundingClientRect();
             const dropX = event.clientX - mapRect.left;
             const dropY = event.clientY - mapRect.top;
             const gridCellX = Math.floor(dropX / currentTileSize);
             const gridCellY = Math.floor(dropY / currentTileSize);
+            let itemToDropDetails;
 
-            let itemToDropDetails; // Will hold width/height of item being dropped
-
-            if (draggedPlacedItemData) { // Moving an existing item
+            if (draggedPlacedItemData) {
                 itemToDropDetails = { width: draggedPlacedItemData.width, height: draggedPlacedItemData.height, id: draggedPlacedItemData.placedId };
-            } else if (draggedItemData) { // Dropping a new item
-                itemToDropDetails = { width: draggedItemData.width, height: draggedItemData.height, id: -1 }; // id -1 for new item
-            } else {
-                return; // Nothing being dragged
-            }
+            } else if (draggedItemData) {
+                itemToDropDetails = { width: draggedItemData.width, height: draggedItemData.height, id: -1 };
+            } else { return; }
 
-            // Boundary checks
             if (gridCellX < 0 || gridCellY < 0 ||
                 gridCellX + itemToDropDetails.width > SINGLE_MAP_COLS ||
                 gridCellY + itemToDropDetails.height > SINGLE_MAP_ROWS) {
@@ -527,10 +546,9 @@
                 return;
             }
 
-            // Collision detection
             let collision = false;
             for (const existingItem of placedItems) {
-                if (existingItem.id === itemToDropDetails.id) continue; // Don't collide with self if moving
+                if (existingItem.id === itemToDropDetails.id) continue;
                 if (existingItem.mapId === targetMapId) {
                     if (gridCellX < existingItem.x + existingItem.width &&
                         gridCellX + itemToDropDetails.width > existingItem.x &&
@@ -546,22 +564,21 @@
                 return;
             }
 
-            // Process drop
-            if (draggedPlacedItemData) { // Finalize move
+            if (draggedPlacedItemData) {
                 const itemToUpdate = placedItems.find(p => p.id === draggedPlacedItemData.placedId);
                 addPlacedItemToGrid(targetMapId, null, gridCellX, gridCellY, true, itemToUpdate);
                 draggedPlacedItemData = null;
-            } else if (draggedItemData) { // Finalize new item placement
+            } else if (draggedItemData) {
                 addPlacedItemToGrid(targetMapId, draggedItemData, gridCellX, gridCellY);
                 draggedItemData = null;
             }
         }
 
-        // Sidebar drop zone for deleting placed items
         sidebarElement.addEventListener('dragover', (event) => {
-            if (draggedPlacedItemData) { // Only accept placed items
+            if (draggedPlacedItemData) {
                 event.preventDefault();
-                sidebarElement.style.outline = '2px dashed red'; // Visual cue
+                event.dataTransfer.dropEffect = "move"; // Often shows as a "delete" or "move" cursor
+                sidebarElement.style.outline = '2px dashed red';
             }
         });
         sidebarElement.addEventListener('dragleave', (event) => {
@@ -576,14 +593,13 @@
             }
         });
 
-
         // --- ALLIANCE FUNCTIONS ---
         function renderAllianceList() {
             allianceListUl.innerHTML = '';
             alliances.forEach(name => {
                 const li = document.createElement('li');
                 const colorSwatch = document.createElement('span');
-                colorSwatch.className = 'color-swatch'; // For CSS targeting
+                colorSwatch.className = 'color-swatch';
                 if (name !== "Neutral" && allianceHues[name] !== undefined) {
                     colorSwatch.style.backgroundColor = `hsl(${allianceHues[name]}, 70%, 60%)`;
                 } else {
@@ -592,17 +608,36 @@
                 li.appendChild(colorSwatch);
 
                 const nameSpan = document.createElement('span');
+                nameSpan.className = 'alliance-name-span';
                 nameSpan.textContent = name;
                 li.appendChild(nameSpan);
 
                 if (name === selectedAllianceName) li.classList.add('selected');
-                li.addEventListener('click', (e) => { /* ... as before ... */ });
-                if (name !== "Neutral") { /* ... delete button as before ... */ }
+                li.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('delete-alliance-btn')) return;
+                    selectedAllianceName = name;
+                    currentAllianceDisplay.textContent = selectedAllianceName;
+                    renderAllianceList();
+                });
+
+                if (name !== "Neutral") {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '×';
+                    deleteBtn.classList.add('delete-alliance-btn');
+                    deleteBtn.title = `Delete alliance: ${name}`;
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Are you sure you want to delete "${name}"? Items will become "Neutral".`)) {
+                            deleteAlliance(name);
+                        }
+                    });
+                    li.appendChild(deleteBtn);
+                }
                 allianceListUl.appendChild(li);
             });
         }
 
-        function addAllianceBtnClickHandler() { // Renamed to avoid conflict if listener added multiple times
+        function addAllianceBtnClickHandler() {
             const name = newAllianceNameInput.value.trim();
             if (name && !alliances.includes(name)) {
                 alliances.push(name);
@@ -642,16 +677,29 @@
             renderAllianceList();
         }
 
-
         // --- TOOLBAR EVENT LISTENERS ---
-        tileSizeSlider.addEventListener('input', (event) => { /* ... as before ... */ });
-        clearAllBtn.addEventListener('click', () => { /* ... as before ... */ });
+        tileSizeSlider.addEventListener('input', (event) => {
+            currentTileSize = parseInt(event.target.value);
+            tileSizeValueDisplay.textContent = `${currentTileSize}px`;
+            updateGridAppearance();
+        });
+        clearAllBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all items from ALL maps?')) {
+                placedItems.forEach(item => {
+                    if (item.element && item.element.parentNode) {
+                        item.element.parentNode.removeChild(item.element);
+                    }
+                });
+                placedItems = [];
+                nextPlacedItemId = 0;
+            }
+        });
 
         // --- INITIALIZATION ---
         function init() {
             createMapContainers();
-            tileSizeSlider.value = currentTileSize; // Set slider to initial value
-            tileSizeValueDisplay.textContent = `${currentTileSize}px`; // Update display
+            tileSizeSlider.value = currentTileSize;
+            tileSizeValueDisplay.textContent = `${currentTileSize}px`;
             currentAllianceDisplay.textContent = selectedAllianceName;
             renderAllianceList();
         }
