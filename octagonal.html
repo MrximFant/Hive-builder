@@ -3,19 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Octagonal Builder Site</title>
-    <link rel="stylesheet" href="style.css"> <!-- Optional: Link to the same CSS -->
+    <title>The Builder's Canvas - Octagonal Project</title>
+    <link rel="stylesheet" href="style.css"> <!-- Link to your main stylesheet -->
+    <style>
+        /* Page-specific styles for octagonal.html */
+        .octagonal-page main {
+            padding: 20px;
+            max-width: 1000px; /* Adjust as needed for wider content */
+            margin: 0 auto;
+        }
+
+        .map-overview-section, .component-details-section, .alliance-spotlight-section, .central-hub-section, .cta-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .section-title { /* Reusable class for section titles */
+            color: #0056b3;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .main-map-image-container {
+            text-align: center; /* Center the map image */
+            margin-bottom: 20px;
+            background-color: #e9ecef; /* Light background for the map */
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .main-map-image-container img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+        }
+
+        .component-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-around; /* Distribute items nicely */
+        }
+
+        .component-item {
+            flex-basis: calc(33.333% - 20px); /* Adjust for number of items per row */
+            min-width: 250px; /* Minimum width for items */
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .component-item img {
+            max-width: 100%;
+            height: auto;
+            max-height: 200px; /* Limit image height */
+            object-fit: contain; /* Ensure image fits well */
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .component-item h4 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .alliance-description {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start; /* Align items to the top */
+        }
+
+        .alliance-description img {
+            max-width: 200px; /* For smaller, focused images of alliances */
+            height: auto;
+            border-radius: 5px;
+            flex-shrink: 0; /* Prevent image from shrinking too much */
+        }
+        .alliance-description .text-content {
+            flex-grow: 1;
+        }
+
+
+        .cta-button {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .cta-button:hover {
+            background-color: #218838;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .component-item {
+                flex-basis: calc(50% - 15px);
+            }
+            .alliance-description {
+                flex-direction: column;
+                align-items: center; /* Center items when stacked */
+            }
+            .alliance-description img {
+                margin-bottom: 15px;
+            }
+        }
+        @media (max-width: 480px) {
+            .component-item {
+                flex-basis: 100%;
+            }
+        }
+
+    </style>
 </head>
-<body>
+<body class="octagonal-page">
+
     <header>
-        <h1>Octagonal Builder Site Details</h1>
+        <h1>The Builder's Canvas: Octagonal Project</h1>
+        <nav>
+            <a href="index.html" style="color:white; margin: 0 10px;">Home</a>
+            <!-- Add other primary navigation if needed -->
+        </nav>
     </header>
-    <main style="padding: 20px; text-align: center;">
-        <p>Content for the Octagonal Builder site will go here.</p>
-        <p><a href="index.html">Back to Home</a></p>
+
+    <main>
+        <section class="map-overview-section">
+            <h2 class="section-title">Strategic Overview</h2>
+            <div class="main-map-image-container">
+                <!-- === YOUR MAIN PIXEL ART IMAGE GOES HERE === -->
+                <img src="udklip.jpg" alt="Strategic map of builder alliances and structures">
+                <!-- Example: <img src="images/builder_map_overview.png" alt="Strategic map..."> -->
+            </div>
+            <p>
+                This canvas represents the dynamic world of our builder project. Each colored cluster signifies an active alliance,
+                developing its territory and resources. The central brown structure is the main 'City', a hub of activity.
+                Observe how different alliances establish their presence with key structures like Bases and Furnaces.
+            </p>
+        </section>
+
+        <section class="alliance-spotlight-section">
+            <h2 class="section-title">The 'Orange' Hive Initiative</h2>
+            <div class="alliance-description">
+                <!-- Optional: A cropped image focusing on the orange alliance, or a conceptual drawing -->
+                <!-- <img src="base.jpg" alt="Detail of the Orange Hive"> -->
+                <div class="text-content">
+                    <p>
+                        The 'Orange' alliance demonstrates our primary expansion strategy. Currently in a foundational phase,
+                        this "hive" is designed for progressive outward growth, securing new territories and resources.
+                        Its development showcases the core principles of establishing a resilient and productive presence.
+                    </p>
+                    <p><strong>Key characteristics:</strong> Modular expansion, resource efficiency, strategic placement.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="central-hub-section">
+            <h2 class="section-title">The Central 'City' (Brown Structure)</h2>
+            <div class="alliance-description"> <!-- Reusing this class for layout consistency -->
+                <!-- === YOUR CITY REFERENCE IMAGE GOES HERE === -->
+                <img src="city level 2.jpg" alt="The Central City Hub">
+                <!-- Example: <img src="images/city_hub.png" alt="The Central City Hub"> -->
+                <div class="text-content">
+                    <p>
+                        Located at the heart of the map, the 'City' (represented by the brown structure) serves as a central
+                        nexus for all alliances. It might offer unique resources, trading opportunities, or strategic advantages.
+                        Its development and control are pivotal to the overall landscape.
+                    </p>
+                    <p><strong>Features:</strong> [e.g., Advanced Crafting, Marketplace, Alliance HQ options - fill these in]</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="component-details-section">
+            <h2 class="section-title">Key Structures & Components</h2>
+            <p>Alliances utilize several core structures to build and sustain their territories:</p>
+            <div class="component-gallery">
+                <div class="component-item">
+                    <!-- === YOUR FURNACE REFERENCE IMAGE GOES HERE (if you have one, or use a stylized icon) === -->
+                    <img src="furnace.jpg" alt="A 5x5 tile Furnace structure">
+                    <!-- Example: <img src="images/furnace_structure.png" alt="A 5x5 tile Furnace structure"> -->
+                    <!-- Or if no image: <img src="https://via.placeholder.com/200x150.png?text=Furnace+(5x5)" alt="Furnace icon"> -->
+                    <h4>Furnace (5x5 Red Tiles)</h4>
+                    <p>The powerhouse of an alliance. Furnaces are crucial for processing resources and fueling advanced construction.</p>
+                </div>
+
+                <div class="component-item">
+                    <!-- === YOUR BASE REFERENCE IMAGE GOES HERE (if you have one, or use a stylized icon) === -->
+                    <img src="path/to/your/base-image.png" alt="A 3x3 tile Base structure">
+                    <!-- Example: <img src="images/base_structure.png" alt="A 3x3 tile Base structure"> -->
+                    <!-- Or if no image: <img src="https://via.placeholder.com/200x150.png?text=Base+(3x3)" alt="Base icon"> -->
+                    <h4>Base (3x3 Tiles - often Grey/Dark)</h4>
+                    <p>The command and control center for an alliance's operations within a sector. Essential for expansion and defense.</p>
+                </div>
+
+                <div class="component-item">
+                    <!-- You can add another component if needed -->
+                    <img src="https://via.placeholder.com/200x150.png?text=Other+Alliances" alt="Icon representing other alliances">
+                    <h4>Other Alliances</h4>
+                    <p>Various other alliances (purple, blue, yellow, etc.) employ similar strategies, establishing their own networks of Bases and Furnaces.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <h2 class="section-title">Learn More or Get Involved</h2>
+            <p>
+                Interested in the strategy behind these builds or want to contribute to the project?
+                Reach out to us for more details or to join an alliance!
+            </p>
+            <p>
+                Email: <a href="mailto:contact@yourproject.com">contact@yourproject.com</a><br>
+                Discord/Forum: <a href="#">[Link to Your Community]</a>
+            </p>
+            <p style="margin-top: 20px;">
+                <a href="#discuss" class="cta-button">Discuss Strategies</a>
+            </p>
+        </section>
+
     </main>
+
     <footer>
-        <p>© 2023 My Builder Sites</p>
+        <p>© <span id="currentYear"></span> My Builder Sites - Octagonal Project. All rights reserved.</p>
+        <p><a href="index.html" style="color:#ccc;">Back to Main Selector</a></p>
     </footer>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+
 </body>
 </html>
